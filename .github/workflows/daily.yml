@@ -1,0 +1,53 @@
+name: Daily Job Finder
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # 03:30 UTC == 09:00 IST (India does not use DST)
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pandas openpyxl python-dotenv dateparser
+
+      - name: Run job finder
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python job_finder.py
+
+      - name: Upload Excel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-jobs
+          path: daily_jobs.xlsx
+
+      # Optional: send email via action (alternative to using SMTP in script)
+      - name: Send email (action)
+        if: ${{ false }}   # flip to true if you want to use the action instead of SMTP in-script
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: "Daily Job Results - ${{ github.run_date }}"
+          to: ${{ secrets.RECIPIENT_EMAIL }}
+          body: "Attached: daily_jobs.xlsx"
+          attachments: daily_jobs.xlsx
