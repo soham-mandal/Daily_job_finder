@@ -1,3 +1,5 @@
+
+pip install requests beautifulsoup4 pandas openpyxl python-dotenv dateparser
 # job_finder.py
 import os
 import re
